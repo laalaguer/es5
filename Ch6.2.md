@@ -150,8 +150,10 @@ Object.getOwnPropertyDescriptor(Person, 'prototype')
 ### Function, Prototype, Instance的关系 `Object.getPrototypeOf`
 可以用下面来表示：
 ```javascript
+// prototype 是一个独立的对象，函数有一个明指针，指向该对象
 Function.prototype = [[Prototype]]
 
+// Instance具备一个暗藏指针，指向该对象
 var instance = new Function()
 instance.[[protoptype]] = [[Prototype]]
 
@@ -178,4 +180,137 @@ p.hasOwnProperty('name') // false
 
 p.name = 'john'
 p.hasOwnProperty('name') // true
+```
+
+### `in` 操作符
+任何属性，只要能够被访问到，都会让这个操作符返回`true`. 不管是不是该对象自身的，还是这个对象的原型对象的。这个操作符就返回属性名字，至于这个属性存储了什么，则需要手动去获得。
+
+```javascript
+function Person() {
+    this.name = 'nicolas'
+    this.age = 18
+}
+
+// Modify Prototype object
+Person.prototype = {
+    height: 190
+}
+
+var p = new Person()
+p.gender = 'male'
+Object.defineProperty(p, 'school', {
+    enumerable: false,
+    value: 'high school'
+})
+
+for (item in p) {
+    console.log(item, p[item], p.hasOwnProperty(item))
+}
+
+/*
+name nicolas true
+age 18 true
+gender male true
+height 190 false // height is not it's own property.
+// school is not displayed because it is not enumerable.
+*/
+
+Object.keys(p) // 返回所有“可见”的变量名
+// [ 'name', 'age', 'gender' ]
+Object.getOwnPropertyNames(p) // 返回所有成员，不管可不可见
+// [ 'name', 'age', 'gender', 'school' ]
+```
+
+### 原型对象被切断
+```javascript
+function Person() {}
+Person.prototype.sayHi = function() {console.log('good')}
+
+var p1 = new Person()
+// 切断原型
+Person.prototype = {
+    sayHi: function() {
+        console.log('bad')
+    }
+}
+
+var p2 = new Person()
+
+p1.sayHi() // good
+p2.sayHi() // bad
+
+//此时p1 和 p2 所指向的原型对象就不是《同一个》对象了！
+```
+
+### 构造函数模式+原型模式
+
+构造函数定义“自身”的属性，原型模式定义“通用方法”。
+
+```javascript
+function Person (name, age) {
+    this.name = name;
+    this.age = age;
+}
+
+Person.prototype.sayName = function () {
+    console.log(this.name);
+}
+
+Person.prototype.increase = function () {
+    this.age = this.age + 1;
+}
+
+Person.prototype.sayAge = function () {
+    console.log(this.age);
+}
+
+var p1 = new Person('nicolas', 18)
+var p2 = new Person('alice', 20)
+
+p1.sayName() // nicolas
+p1.increase()
+p1.sayAge() // 19
+
+p2.sayName() // alice
+p2.sayAge() // 20
+```
+
+### 稳妥构造函数 Durable Object
+
+```javascript
+
+function Person (name, age) {
+    //没有对于this的引用
+    var o = {}
+    o.getName = function () {
+        return name
+    }
+    o.getAge = function () {
+        return age
+    }
+
+    return o
+}
+
+var p = Person('nicolas', 18) // 也没有new关键字
+p.getName()
+p.getAge()
+// 也无法修改p对象的传入的值，和下面《寄生构造函数》鲜明区别：
+
+function Person (name, age) {
+    //可以修改name/age的值
+    var o = {}
+    o.name = name
+    o.age = age
+    o.getName = function () {
+        return this.name
+    }
+    o.getAge = function () {
+        return this.age
+    }
+    return o // note:1
+}
+
+var p = new Person('nicolas', 18) // 有new 关键字
+// note:1 构造函数结尾返回了一个对象，该对象代替js环境默认创建的新对象
 ```
