@@ -1,7 +1,7 @@
 # 6.2
 对象的创建方式，一共两种。
 
-## 构造函数模式
+## 构造函数模式 Constructor Pattern
 这个方法，是Javascript一种特殊的创建形式，通过一个函数来初始化一个对象。
 ```javascript
 function Person() {
@@ -101,9 +101,11 @@ console.log(p.constructor == Person) // true
 console.log(p instanceof Person) // true
 ```
 
-## 原型模式
+## 原型模式 Prototype Pattern
 
 在`Function`对象上，其实包含一个`prototype`指针，指向`原型对象`。该原型对象包含了一组属性和方法，可以被所有该`Function`实例化的对象所引用。
+
+你可以把全部的属性和方法都放到原型对象里。
 
 ```javascript
 Person = function() {} // Person是一个函数
@@ -240,11 +242,15 @@ p1.sayHi() // good
 p2.sayHi() // bad
 
 //此时p1 和 p2 所指向的原型对象就不是《同一个》对象了！
+
+// 除非重新在 prototype 上设立这段关系
+Person.prototype.constructor = Person
+
 ```
 
 ### 构造函数模式+原型模式
 
-构造函数定义“自身”的属性，原型模式定义“通用方法”。
+构造函数定义“自身”的属性，原型模式定义“通用方法”。这是一种比较常见的创建对象的模式
 
 ```javascript
 function Person (name, age) {

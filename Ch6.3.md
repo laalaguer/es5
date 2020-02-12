@@ -1,7 +1,7 @@
 # 6.3
 原型链/经典继承/组合继承
 
-## 原型链 (很少单独使用)
+## 原型链 Prototype Chain (很少单独使用)
 
 ```javascript
 // Constructor
@@ -174,7 +174,7 @@ function Son(familyName, name) {
 }
 
 // 重点：原型链继承获得方法
-Son.prototype = new Father(); // 注意，没传参数，所以会让内部familyName = undefined
+Son.prototype = new Father(); // 注意，没传参数，所以会让内部familyName = undefined，调用了构造函数创建了一个对象
 
 // 自己这层的公用方法
 Son.prototype.getName = function() {
@@ -202,7 +202,11 @@ s = {
 - 每份`instanceof` 操作符能顺利识别对象类别
 - 尤其注意原型部分采用了`无参数`的创建方式。
 
-## 原型式继承 （Crockford提出）
+缺点：
+- 两次调用了父类进行对象创建，一次构建函数内部，一次原型指定
+- 原型指定的时候，没有提供父类构造函数任何参数，有可能导致调用失败。
+
+## 原型式继承 Prototypal Inheritance（Crockford提出）
 应用场景：当简单基于一个`现有对象`进行某种扩展的时候，采用快速的原型继承。相当于进行了一次浅复制。
 
 ```javascript
@@ -252,4 +256,33 @@ b.toString() // '1,.,2,.,3,.' 方法被遮蔽
 
 
 ## 寄生组合式继承
-略
+
+顾名思义就是用`寄生`模式替代`组合继承`里面第二次初始化父类构造函数的过程。我们再也不用冒险初始化空的父对象了！
+
+```javascript
+function Person(name) {
+    this.name = name
+}
+
+Person.prototype.sayName = function () {
+    console.log('Hello, I am:', this.name)
+}
+
+function Worker(name, job) {
+    Person.call(this, name)
+    this.job = job
+}
+
+// Worker 想继承 Person 的方法，咋办啊？
+Worker.prototype = Object.create(Person.prototype) // 喜大普奔，再也不用创建对象了，用原型式替代。成功继承方法群
+// 把原型链打破了，修补一下
+Worker.prototype.constructor = Woker
+// 添加自己的原型方法, 增强！
+Worker.prototype.sayJob = function () {
+    console.log('My job is:', this.job)
+}
+
+let w = new Worker('john', 'farmer')
+w.sayName()
+w.sayJob()
+```
