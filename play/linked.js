@@ -70,7 +70,7 @@ function printNodes(node) {
  * @param {Node} node The head of the linked list.
  * @returns {Node} The head of the reversed linked list.
  */
-function reverseAChain(node) {
+function reverseTheChain(node) {
     // if first node is null
     if (node === null) {
         return null
@@ -102,17 +102,17 @@ function reverseAChain(node) {
 var head = buildAChain([1,2,3,4,5,6])
 printNodes(head)
 
-var newHead = reverseAChain(head)
+var newHead = reverseTheChain(head)
 printNodes(newHead)
 
 var head = buildAChain([1,2])
 printNodes(head)
 
-var newHead = reverseAChain(head)
+var newHead = reverseTheChain(head)
 printNodes(newHead)
 
 var head = buildAChain([1])
 printNodes(head)
 
-var newHead = reverseAChain(head)
+var newHead = reverseTheChain(head)
 printNodes(newHead)
