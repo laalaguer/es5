@@ -1,3 +1,6 @@
+/**
+ * Chapter 3 Variables.
+ */
 var b
 console.log(b, typeof b)
 
