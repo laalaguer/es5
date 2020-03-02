@@ -41,18 +41,21 @@ Javascript有没有继承？究竟能不能继承？
 
 ```
 // 文档
-Ch3   Variables.md     
-Ch4   Scope.md    
-Ch5   Reference Types.md
-Ch6.1 Object Define.md   
-Ch6.2 Constructor or Prototype.md 
-Ch6.3 Inheritance.md
-Ch7   Function Expression.md  
-Ch7.1 Execution Context.md  
-Ch7.2 Clousure.md            
-Ch7.3 This.md     
+Ch.3    Variables.md
+Ch.4    Reference.md
+Ch.5    Reference Types.md
+Ch.6.1  Object Define.md
+Ch.6.2  Constructor or Prototype.md
+Ch.6.3  Inheritance.md
+Ch.7    Function Expression.md
+Ch.7.1  Execution Context.md
+Ch.7.2  Variable Object.md
+Ch.7.3  Scope Chain.md
+Ch.7.4  Closure.md
+Ch.7.5  This.md
+Ext.1 Import Export.md
 
-// 一些snippet               
+// 一些snippet
 play
 // 额外
 Ext.1 Export.md
