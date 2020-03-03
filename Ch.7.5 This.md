@@ -1,9 +1,185 @@
 # `this` 对象
-刚才已经说过了`this` 和 `arguments` 在函数调用的时候会被活动对象保存下来。
+而 `this` 和 `[[Scope]]` 不一样，不是函数`定义时/创建时`就已经快照好的。是唯一一个在执行上下文中，随时变化的活动变量。它的是动态的，属于 Execution Context。
 
-而`this`和 Env 不一样，不是函数`定义时/创建时`就已经快照好的。是唯一一个在执行上下文中，随时变化的活动变量。它的 Scope 是动态的。（和代码定义时候 Static Scope的Env相反）
+## 理论基础
 
-现在重新理解一下`this`关键字在实际中的应用。
+`this` 是 `Execution Context` 的一部分，进入Context 执行之初，就被指定.
+
+```javascript
+const executionContext = {
+    this,
+    VO,
+}
+```
+
+`this` 的值，取决于代码的执行类型。分为两种类型 `Global Code` 和 `Function Code`。
+
+### Global Code
+
+这个情况特别简单，因为是全局，所以 `this == global`。
+
+```javascript
+this.a = 10;
+console.log(a); // 10
+
+b = 20;
+console.log(this.b) // 20
+
+var c = 30;
+console.log(this.c) // 30
+```
+
+### Function Code
+这是复杂的地方，`this` 的值取决于 **你怎么呼叫的代码**。
+
+```javascript
+function Foo() {
+    console.log(this);
+}
+
+// 证明是同一样东西
+Foo.prototype.constructor == foo // true
+
+// 虽然是一样东西，但是“怎么”呼叫的产生了天壤之别
+Foo(); // global
+Foo.prototype.constructor() // Foo {}
+```
+
+OK, 铺垫一下知识来让你 3 分钟明白如何分辨。
+
+### 知识储备：`Reference` type
+JS的内置类型：`Reference` 类型。可以表示为两部分组成：
+
+```javascript
+var xxxReference = {
+    base: {to which object it belongs},
+    propName: "name of the prop"
+}
+
+// 举个例子
+var a = 10;
+
+// 试图访问
+a;
+
+var aReference = {
+    base: global,
+    propName: 'a'
+}
+
+// 再举个例子
+var b = {
+    c: function () {}
+}
+
+// 试图访问
+b.c()
+
+var cReference = {
+    base: b,
+    propName: 'c'
+}
+```
+
+`Reference`类型只可以是两种情况：
+- `identifier` 标识符
+- `property accessor` 属性取值器
+
+标识符已经很熟悉了。就是变量定义、函数定义这种。
+
+```javascript
+var a = 10;
+function b () {};
+// a --> 标识符
+// b --> 标识符
+
+a; // 这里 对 a 求值
+b(); // 对 b 求值
+
+var aReference = {
+    base: global,
+    propName: 'a'
+}
+
+var bReference = {
+    base: global,
+    propName: 'b'
+}
+```
+
+属性取值也很熟悉了。
+
+```javascript
+var foo = {
+    bar: 10,
+    baz: function () {}
+}
+
+foo.bar // 属性取值
+foo['bar'] // 属性取值
+```
+
+OK, 下面这三句话决定了 `this` 在运行时的定义：
+- `this` 取决于你如何呼叫的代码
+- 如果`()`左侧是一个`Reference`类型，则`this`设定为 `Reference` 类型的 `base`
+- 如果左侧不是 `Reference` 类型，则设定为 `null` (严格模式下)，或者设置为 `global`（非严格模式）
+
+### 重新审视例子
+
+```javascript
+function foo() {
+    console.log(this)
+}
+
+foo();
+// foo() --> 左侧是 foo 标识符
+// fooReference = {
+//    base: global,
+//    propName: 'foo'
+// }
+// 所以
+// this = global
+```
+
+```javascript
+var foo = {
+  bar: function () {
+    return this;
+  }
+};
+ 
+foo.bar();
+// foo.bar() --> 左侧 foo.bar 是属性取值
+// foobarReference = {
+//    base: foo,
+//    propName: 'bar'
+// }
+
+// this  = foo
+
+var test = foo.bar
+test();
+
+// test() --> 左侧 test 是标识符
+// testReference = {
+//    base: global,
+//    propName: 'test'
+// }
+
+// this = global
+```
+
+```javascript
+(function () {
+  console.log(this); // null => global
+})();
+
+// (); 的左侧，是一个(function(){})表达式，不是标识符
+// this 设置为 null
+// 弄到了 global
+```
+
+## 重新审视 `this` 在实际中的应用
 
 ```javascript
 var name = "My Window"
@@ -17,25 +193,19 @@ var object = {
 
 object.getName() // My Object
 
+// object.getName --> 属性取值
+// getNameReference = {
+//    base: object
+// }
 
-
-// 很简单，全剧环境被创建 [this, arguments, name, object]
-// 走到定义 getName: function() 
-// getName 的环境被创建，Lexical法则。很可惜，这里没啥闭包之类的。
-// 现在调用的是getName函数，它的活动对象被创建，
-// 活动对象里推入 [this, arguments]
-// 相当于 getName.call(object)
-// 因为call的存在，改变 this 重定向到 object
-// arguments因为没有，所以维持原状
-// object.name成功访问到 My Object字符串
-
+// this = object
 
 var object2 = {
     name: "2"
 }
 
 object.getName.call(object2) // '2'
-// 你可以看到 this 没什么忠诚度，用一个call就能重定向
+// 强制制定了 object2 到 呼叫对象上
 ```
 
 如果我们稍微改一下
@@ -55,34 +225,34 @@ var object = {
 const a = object.getName()
 a() // 'My Window'
 
-// 程序开始 Global 环境
-// Global variables = [name, object, a], 其中 name object 被提升到开头
-// name 充值
-// object 充值，其中 getName 进行定义，Scope/Env 包含[name], [parent.name]
+// const a = object.getName()
+// object.getName()
+// object.getName --> 属性取值
+// getNameReference = {
+//    base: object
+// }
 
-// a 充值
-// getName第一次被运行，需要返回一个函数，有闭包，Lexical法则创建Scope/Env
-// 第一个作用域顺位，是它自己的活动对象。
-// [this, arguments] 很可惜没什么东西。
-// 第二个顺位，是它的包裹父对象 object 和他的子属性 [name]
-// 第三个顺位，是再外层的window
+// this = object, 推入 Context, 
+// 运行完毕  object.getName()
+// Context 被释放
 
-// 由于 object.getName() 相当于 getName.call(object)
-// 所以上述 this 就是 object
-// 但不要忘记了，this是活力活络的，会变化！
+// a()
+// a --> 标识符
+// aReference = {
+//   base: global
+// }
 
-// a() 运行
-// 创建Scope/Env
-// 第一个顺位是，它自己活动对象
-// [this, arguments]
-// 第二个顺位是，getName的变量对象
-// 第三个顺位是，object
-// 第四个顺位是，window
+// this = global 推入 Context,
+// 执行 function() {
+//    return this.name
+// }
+// 得出结论 My Window
 
-// 由于 a() 相当于 a.call(window)
-// 所以上述this 相当于 window
-// 搜索this到第一层就停，这个this是谁？是window
+```
 
+我们再改一下
+
+```javascript
 var name = "My Window"
 
 var object = {
@@ -98,30 +268,40 @@ var object = {
 const a = object.getName()
 a() // 'My Object'
 
-// getName第一次被运行，创建作用域链
-// 第一个作用域顺位，是它自己的活动对象
-// [this, arguments, that],
-// 由于 object.getName() 相当于 getName.call(object)
-// 所以 this = object, 且 that = this = object
-// 第二个顺位，是它的包裹对象 object和他的子属性
-// [name]
-// 第三个顺位，是再外层的window和他的子属性
-// [name, object]
+// const a = object.getName()
+// object.getName()
+// object.getName --> 属性取值
+// getNameReference = {
+//    base: object
+// }
 
-// a() 运行，穿件作用域链
-// 第一个顺位是，它自己活动对象
-// [this, arguments]
-// a() 相当于 a.call(window)
-// 所以 this = window, 但没用。我们寻求的是 'that.name'
-// 第二个顺位是，getName的变量对象
-// [that]
-// 第三个顺位是，object
-// 第四个顺位是，window
+// this = object, 推入 Context, 
+// 运行完毕  object.getName()
+// Context 被释放
 
-// 搜索that到第二层就停，这个that是谁？是object
+// ！！！ 但是 var that = this
+// that = object
+// 这份环境被保存在了 Lexcial Env
+// 保存入了自函数的 [[Scope]] 里面
+
+// a()
+// a --> 标识符
+// aReference = {
+//   base: global
+// }
+
+// this = global 推入 Context,
+// 执行 function() {
+//    return that.name
+// }
+
+// that 无法在本函数的 VO｜AO中找到
+// that 在 [[Scope]] 中找到
+// that == object
+// that.name == 'My Object'
 ```
 
-所以这里的that是 activation object 的一部分是 Env 的一部分，是return function() 时候的闭包快照的一部分。已经不是灵活的 this 执行时候传入的了！
+所以这里的that是 `Scope = VO + [[Scope]]` 的一部分，是return function() 时候的闭包快照的一部分。已经不是灵活的 this 执行时候传入的了！
 
 ### `=>` 函数 Arrow Function
 
@@ -136,19 +316,37 @@ var b = {
     }
 }
 
-b.bar() // undefined, 在动态呼叫中， this = b, b并没有x，所以undefined
+b.bar() // undefined, 
+
+// this = b, b并没有x，所以undefined
 ```
 
 ```javascript
 var x = 10;
 
-var b = {
+var b = { // 没有创建新的 Scope
+    bar: () => {
+        return this.x // 绑定到了 global Scope 上， this == global
+    }
+}
+
+b.bar() // 10
+// ()=>{} 这段代码没有自己的 this，是从父Scope借调的this
+// 父Scope的 this 取决于 被调用时候的情况 (还是回到之前的讨论上)
+```
+稍微改一下
+
+```javascript
+var x = 10;
+var b = { // does not create a new scope
     bar: () => {
         return this.x
     }
 }
 
-b.bar() // 10， 在动态呼叫中，this 取材于父环境，b在执行中的父环境是global环境（应为我们在Global上下文中调用了b.bar()
+var y = { x: 30 }
+y.bar = b.bar
+y.bar() // 还是 10, 因为 this 已经在代码定义的时候 绑定到了父环境 global ，因为 b = {} 并没有创建 Scope
 ```
 
 那么我们稍微改一下上面的例子：
@@ -158,29 +356,21 @@ var name = "My Window"
 
 var object = {
     name: "My Object",
-    getName: function() {
-        return () => { return this.name }
+    getName: function() { // 这层有一个 Scope
+        return () => { return this.name } // 没有自己的this, this 绑定到了上面这层 Scope 上
     }
 }
 
-const a = object.getName()
+var a = object.getName() // this == object, this 成功绑上
 a() // 'My Object'
 
-
-// object.getName() 执行于Global环境中，
-// getName 创建Lexical Env, 很可惜，没啥东西
-// 匿名函数创建 Lexical Env, 包含“父环境”，也就是object活动对象
-// 箭头函数更改了this行为，让其不从执行环境取值，留空。而是从父执行环境取值
-// 此时 object.getName() = getName.call(object)
-// this == object
-// 所以是 this.name 在 const a = object.getName() 时候傍上了 object
-// a() 就变成了 'My Object'
-
-// 可见 () => {} 在第一次执行的时候很重要。第一次执行的 this 将会绑定一生。
+// 改一下，把方法传给其他人
+var b = object.getName
+var c = b() // b --> 标识符 this == global, this 成功绑上
+c() // 'My Window'
 
 // 强制制定 this 为 global
-// this在呼叫时候被绑定
-const c = object.getName.call(global)
+const c = object.getName.call(global) // this == global
 c() // 'My Window'
 
 ```
